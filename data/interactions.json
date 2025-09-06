@@ -1,0 +1,273 @@
+[
+  {
+    "time": "2025-09-01T00:50:48.121Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "ESTE ME GUSTÓ MUCHO",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T00:50:59.958Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "selected",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T01:16:48.513Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "vluygluygluygluyg",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T01:17:59.886Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "MUY BONITO",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T01:19:08.043Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "note",
+    "note": "BONITO X2",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T01:58:37.714Z",
+    "buyer": "LA COMER",
+    "model": "AX51",
+    "action": "selected",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T01:58:39.439Z",
+    "buyer": "LA COMER",
+    "model": "AX51",
+    "action": "selected",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:15:09.862Z",
+    "buyer": "WALMART",
+    "model": "AX51",
+    "action": "note",
+    "note": "Incluir baterias y 20 focos",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:24:17.622Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "1234",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:24:45.108Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "selected",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:43:56.322Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "hola",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:43:57.160Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "hola",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:43:57.166Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "selected",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:43:58.543Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "hola",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:43:58.547Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "selected",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:51:34.634Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "note",
+    "note": "Hola!!! Prueba",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:51:35.003Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "note",
+    "note": "Hola!!! Prueba",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:51:50.252Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "note",
+    "note": "Hola!!! Prueba",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:51:50.254Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "note",
+    "note": "Hola!!! Prueba",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:51:50.433Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "selected",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T02:51:50.435Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "selected",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T03:48:38.408Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "Este es un comentario de prueba!",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T03:48:38.413Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "Este es un comentario de prueba!",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T03:48:38.430Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "selected",
+    "note": "",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T03:48:38.433Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "selected",
+    "note": "",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T04:05:28.037Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "note",
+    "note": "Quiero cambiar esto!!",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-01T04:05:28.065Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "selected",
+    "note": "",
+    "device": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-02T22:29:29.562Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "note",
+    "note": "jajasdoijasdoij",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-02T22:29:29.570Z",
+    "buyer": "SORIANA",
+    "model": "AX51",
+    "action": "selected",
+    "note": "",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-02T22:37:13.506Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "selected",
+    "note": "",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  },
+  {
+    "time": "2025-09-02T22:37:13.519Z",
+    "buyer": "HEB",
+    "model": "AX51",
+    "action": "note",
+    "note": "me gusta este jeje",
+    "device": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "price": "$3.90"
+  }
+]
