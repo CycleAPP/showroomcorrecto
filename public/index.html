@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Lumina Showroom 2025</title>
+
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tus estilos separados -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="particles-js"></div>
+
+  <div class="cart-icon-wrapper" id="openCart">
+    <div class="cart-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 22c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1Z" stroke="#334155" stroke-width="2"/>
+        <path d="M20 22c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1Z" stroke="#334155" stroke-width="2"/>
+        <path d="M1 1h4l2.68 13.39c.19.94.95 1.62 1.9 1.61H19.4c.95.01 1.71-.67 1.9-1.61L23 6H6" stroke="#334155" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="cart-count" id="cartCount" style="display:none">0</div>
+  </div>
+
+  <div class="wrap">
+    <div class="header-card">
+      <h1 style="margin:0 0 16px 0;">Lumina Showroom 2025</h1>
+      <div class="header-controls">
+        <select id="buyer"></select>
+        <input id="q" placeholder="Buscar por modelo o nombre..." style="flex-grow:1;"/>
+        <button class="btn-primary" id="btnbuscar">Buscar</button>
+        <button class="btn-ghost" id="reload">Recargar</button>
+      </div>
+    </div>
+    <div id="results" class="grid"></div>
+  </div>
+
+  <!-- Modal carrito -->
+  <div class="modal-overlay" id="cartModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Mi Selección</h2>
+        <button class="btn-ghost" id="closeCart">Cerrar</button>
+      </div>
+      <div class="modal-body" id="cartBody"></div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="clearCart">Vaciar</button>
+        <button class="btn-primary" id="submitCart">Enviar Selección</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal detalle -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="detailTitle"></h2>
+        <button class="btn-ghost" id="closeDetail">Cerrar</button>
+      </div>
+      <div class="modal-body">
+        <pre id="detailContent" class="detail-pre"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Partículas -->
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+  <!-- Tu JS separado (pega aquí lo que tenías en el <script> de la página, pero en app.js) -->
+  <script src="app.js"></script>
+</body>
+</html>

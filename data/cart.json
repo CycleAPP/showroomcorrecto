@@ -1,0 +1,65 @@
+{
+  "OMNIA": [
+    {
+      "model": "TB03",
+      "note": "Hola",
+      "short": "1.5m Prelit Wrap tree, Diam: 0.8m, 200 Warm LED lights, 369 tips, 8 functions, 19 pinecones",
+      "price": 23.65,
+      "pvp": 1655.5,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FTB03"
+    },
+    {
+      "model": "Gato bonito",
+      "note": "Con liz",
+      "image": "/images/CUSTOM_1758326250049.jpeg",
+      "isCustom": true,
+      "short": "Con liz",
+      "price": null,
+      "pvp": null
+    },
+    {
+      "model": "TB02",
+      "note": "sejemplo",
+      "short": "1.8m Prelit Wrap tree, Diam: 0.98m, 300 Warm LED lights, 780 tips, 8 functions, No Decorative elements",
+      "price": 25.98,
+      "pvp": 1818.6,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FTB02"
+    }
+  ],
+  "SORIANA": [
+    {
+      "model": "AX51",
+      "note": "hola",
+      "short": "Serie LED 300 luz calida y 8 funciones",
+      "price": 3.9,
+      "pvp": 234,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FAX51"
+    }
+  ],
+  "HEB": [
+    {
+      "model": "T52N",
+      "note": "Luces duales",
+      "short": "2.1m Prelit tree, Diam: 1.3m, 500 Warm LED lights, 8 functions, No Decorative elements",
+      "price": 72.34,
+      "pvp": 5063.8,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FT52N"
+    },
+    {
+      "model": "T91N",
+      "note": "incluir baterias",
+      "short": "200cm garland, Diam: 0.25m, 30 Warm LED lights, Timer function, 10 pinecones",
+      "price": 8.04,
+      "pvp": 562.8,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FT91N"
+    },
+    {
+      "model": "T81N",
+      "note": "quitar piñas",
+      "short": "50cm wreath, 30 Warm LED lights, Timer function, 4 pinecones",
+      "price": 5.49,
+      "pvp": 384.3,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FT81N"
+    }
+  ]
+}

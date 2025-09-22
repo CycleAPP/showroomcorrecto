@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+.venv/
+venv/
+.DS_Store
+data/*.xlsx
+data/*.csv
+credentials.json
