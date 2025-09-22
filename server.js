@@ -1,12 +1,15 @@
-// server.js — Lumina Showroom 2025 (completo y robusto)
-// - Short description en tarjetas y carrito
-// - Descargar PDF (tabla con alto dinámico + placeholder si falla imagen)
-// - Descargar Excel
-// - Autodetect de hoja y header row si no se pasan por .env
-// - Imágenes: Cloudinary (preferido) -> URL Excel -> local -> fallback
-// - SPA completa embebida
-// - NUEVO: Productos personalizados (foto opcional) + FIX: en PDF sí usa su foto
-// - NUEVO: Conversión opcional a PNG con sharp si está instalado (HEIC/WEBP, etc.)
+// server.js — Lumina Showroom 2025 (FULL con tarjetas y carrito completos)
+// - Catálogo desde Excel (autodetect hoja y header row si no vienen por .env)
+// - Imágenes: Cloudinary (preferido) -> URL del Excel -> local -> fallback
+// - SPA embebida: búsqueda, detalles, carrito, productos personalizados con foto
+// - Carrito persistente en ./data/cart.json
+// - Exportar PDF (SIN PRECIOS) con placeholder si falla la imagen
+// - Exportar Excel (modelo, descripción, comentario)
+// - "Short description" con fallback a descripción larga en tarjetas, carrito, PDF y Excel
+// - PDF usa la imagen elegida en productos personalizados (no fuerza Cloudinary)
+// - Botón “Recargar” refresca catálogo
+// - Botón “Recargar + Imágenes” ejecuta script Python y luego refresca
+// - Tarjetas y carrito muestran Packaging/Master/Precio/PVP (si existen)
 
 import 'dotenv/config';
 import express from 'express';
@@ -18,10 +21,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import PDFDocument from 'pdfkit';
+import { exec } from 'child_process';
 
-let Sharp = null; // import opcional
+let Sharp = null; // import opcional para convertir imágenes de productos personalizados
 try {
-  // si no está instalado, simplemente no convierte (pero todo sigue funcionando)
   const mod = await import('sharp');
   Sharp = mod.default || mod;
 } catch (_) {}
@@ -31,16 +34,15 @@ const __dirname  = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
-
-// --- Límite aumentado para aceptar fotos de alta resolución de celulares ---
 app.use(express.json({ limit: '100mb' }));
 
-// ===== env base =====
+// ===== env =====
 const PORT             = Number(process.env.PORT || 3000);
 const EXCEL_URL        = (process.env.EXCEL_URL  || '').trim();
 const EXCEL_PATH       = (process.env.EXCEL_PATH || '').trim();
-const SHEET_NAME_ENV   = (process.env.SHEET_NAME || '').trim();   // '' => autodetect
-const HEADER_ROW_ENV   = Number(process.env.HEADER_ROW || 0);     // 0 => autodetect
+const SHEET_NAME_ENV   = (process.env.SHEET_NAME || '').trim();
+const HEADER_ROW_ENV   = Number(process.env.HEADER_ROW || 0);
+
 const BUYERS = (process.env.BUYERS || 'OMNIA,HEB,SORIANA')
   .split(',').map(s => s.trim()).filter(Boolean);
 
@@ -48,7 +50,11 @@ const BUYERS = (process.env.BUYERS || 'OMNIA,HEB,SORIANA')
 const CLOUDINARY_CLOUD_NAME = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
 const CLOUDINARY_FOLDER     = (process.env.CLOUDINARY_FOLDER || 'showroom_2025').trim();
 
-// Paths
+// Script Python (ruta configurable)
+const PY_IMAGE_SCRIPT = (process.env.PYTHON_IMAGE_SCRIPT || './extract_and_upload_images_by_model.py').trim();
+const PYTHON_BIN      = (process.env.PYTHON_BIN || 'python3').trim();
+
+// Paths y datos persistentes
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -61,32 +67,34 @@ const CART_PATH     = path.join(DATA_DIR, 'cart.json');
 const CATALOG_XLSX  = path.join(DATA_DIR, 'last.xlsx');
 const FALLBACK_IMG  = 'https://drive.google.com/uc?id=1k6WmYPgtR1Sf8IthM_WlNi-XiM-Uhynr';
 
-// ===== Aliases (completos) =====
+// ===== Aliases de columnas =====
 const AL = (key, def) => (process.env[key] || def).split(',').map(s=>s.trim()).filter(Boolean);
 
-const A_MODEL            = AL('COL_MODEL',               '2026 model,Item #,Item,Modelo,#Item,Item#,Model');
+const A_MODEL            = AL('COL_MODEL',               '2026 Model,2026 model,Model,Item #,Item,Modelo,#Item,Item#');
 const A_IMAGE            = AL('COL_IMAGE',               'Picture,Extra Pictures,image_url,picture,Imagen,Image');
 const A_SHORT            = AL('COL_SHORT',               'Short description,Descripción genérica,Descripcion generica,Short');
 const A_NAME_LONG        = AL('COL_NAME',                'Item Description,Description of Goods,Descripción de Goods,Descripcion de Goods');
-const A_PRICE_SORIANA    = AL('COL_PRICE',               'Precio a Soriana,Final unit cost,Unit price (USD),initial unit cost');
-const A_PVP_SORIANA      = AL('COL_PVP',                 'PVP Soriana (Estimado),PVP estimado,PVP');
 const A_PACKAGING_TYPE   = AL('COL_PACKAGING_TYPE',      'Packaging type,Packaging');
 const A_MASTER_PACK      = AL('COL_MASTER_PACK',         'Master Pack,Master pack');
+// Precios “base” (ej. Soriana) — para tarjetas/carrito visualmente
+const A_PRICE_SORIANA    = AL('COL_PRICE',               'Precio a Soriana,Precio FOB Soriana ($USD),Final unit cost,Unit price (USD),initial unit cost');
+const A_PVP_SORIANA      = AL('COL_PVP',                 'PVP Soriana Estimado ($MXN),PVP Soriana (Estimado),PVP estimado,PVP');
+
 const A_CBM_PER_PIECE    = AL('COL_CBM_PER_PIECE',       'CBMs x piece,CBM x piece,CBM/piece');
 const A_BULB_TECH        = AL('COL_BULB_TECH',           'Bulb Tech');
 const A_NUM_BULBS        = AL('COL_NUM_BULBS',           '# of Bulbs,Number of Bulbs');
 const A_COLOR_BULB       = AL('COL_COLOR_BULB',          'Color Bulb');
 const A_WIRE_COLOR       = AL('COL_WIRE_COLOR',          'Wire Color');
-const A_TOTAL_LENGTH_M   = AL('COL_TOTAL_LENGTH_M',      'Total Lenght (m),Total Length (m)');
+const A_TOTAL_LENGTH_M   = AL('COL_TOTAL_LENGTH_M',      'Total Length (m),Total Lenght (m)');
 const A_POWER_SUPPLY     = AL('COL_POWER_SUPPLY',        'Power supply');
-const A_LIGHTED_LENGTH_M = AL('COL_LIGHTED_LENGTH_M',    'Lighted Lenght (m),Lighted Length (m)');
+const A_LIGHTED_LENGTH_M = AL('COL_LIGHTED_LENGTH_M',    'Lighted Length (m),Lighted Lenght (m)');
 const A_LEAD_IN_M        = AL('COL_LEAD_IN_M',           'Lead in (m)');
 const A_LEAD_OUT_M       = AL('COL_LEAD_OUT_M',          'Lead out (m)');
 const A_END_CONNECTOR    = AL('COL_END_CONNECTOR',       'End connector');
 const A_FUNCTIONS        = AL('COL_FUNCTIONS',           'Function (#),# of Functions,Functions');
-const A_INCLUDED_ACC     = AL('COL_INCLUDED_ACCESSORIES','Included accesories,Included accessories,Accessories');
+const A_INCLUDED_ACC     = AL('COL_INCLUDED_ACCESSORIES','Included accessories,Included accesories,Accessories');
 
-// ========= Carrito compartido persistente =========
+// ========= Carrito (persistente por buyer) =========
 let CARTS = {};
 try { if (fs.existsSync(CART_PATH)) CARTS = JSON.parse(fs.readFileSync(CART_PATH,'utf8')); } catch {}
 const saveCarts = ()=>{ try{ fs.writeFileSync(CART_PATH, JSON.stringify(CARTS,null,2),'utf8'); }catch{} };
@@ -100,10 +108,14 @@ function fuzzyFindKey(obj, aliases){
   for (const k of keys){ const nk=norm(k); if (aliases.some(a=>nk.includes(norm(a)))) return k; }
   return null;
 }
-const pick = (row, aliases) => {
-  const k = fuzzyFindKey(row, aliases);
-  return k ? row[k] : '';
-};
+const pick = (row, aliases) => { const k = fuzzyFindKey(row, aliases); return k ? row[k] : ''; };
+function toNumber(v){
+  const s=String(v??'').trim(); if (!s) return NaN;
+  const cleaned=s.replace(/[^\d,.\-]/g,'').replace(/,(?=\d{3}\b)/g,'').replace(/\.(?=\d{3}\b)/g,'');
+  const normalized=cleaned.replace(/,(\d{1,2})$/,'.$1'); const n=Number(normalized);
+  return Number.isFinite(n)?n:NaN;
+}
+
 async function fetchExcelBuffer(){
   if (EXCEL_URL){ const r = await axios.get(EXCEL_URL,{responseType:'arraybuffer'}); return Buffer.from(r.data); }
   if (EXCEL_PATH){ const abs = path.isAbsolute(EXCEL_PATH)?EXCEL_PATH:path.join(__dirname,EXCEL_PATH); return fs.readFileSync(abs); }
@@ -118,7 +130,9 @@ function normalizeDriveUrl(u){
   return s;
 }
 const modelBase = m => String(m||'').trim().replace(/[^\w\-]+/g,'_');
-const cloudinaryUrlForModel = m => CLOUDINARY_CLOUD_NAME ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto/${CLOUDINARY_FOLDER}/${modelBase(m)}` : '';
+const cloudinaryUrlForModel = m => CLOUDINARY_CLOUD_NAME
+  ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto/${CLOUDINARY_FOLDER}/${modelBase(m)}`
+  : '';
 function tryLocalImage(model){
   const base=modelBase(model);
   for (const ext of ['jpg','jpeg','png','webp']){
@@ -127,29 +141,17 @@ function tryLocalImage(model){
   }
   return '';
 }
-function toNumber(v){
-  const s=String(v??'').trim(); if (!s) return NaN;
-  const cleaned=s.replace(/[^\d,.\-]/g,'').replace(/,(?=\d{3}\b)/g,'').replace(/\.(?=\d{3}\b)/g,'');
-  const normalized=cleaned.replace(/,(\d{1,2})$/,'.$1'); const n=Number(normalized);
-  return Number.isFinite(n)?n:NaN;
-}
-
-// preferChosen=true => no intenta Cloudinary (para items personalizados)
+// preferChosen=true => NO intenta Cloudinary (productos personalizados)
 function directImageUrlFor(model, chosenPath, preferChosen = false) {
   if (!preferChosen) {
     const cld = cloudinaryUrlForModel(model);
     if (cld) return cld;
   }
   if (chosenPath?.startsWith('/img?u=')) {
-    try {
-      const u = new URL('http://local'+chosenPath).searchParams.get('u');
-      return decodeURIComponent(u||'');
-    } catch {}
+    try { const u = new URL('http://local'+chosenPath).searchParams.get('u'); return decodeURIComponent(u||''); } catch {}
   }
   if (/^https?:/i.test(chosenPath||'')) return chosenPath;
-  if (chosenPath?.startsWith('/images/')) {
-    return 'file://' + path.join(IMAGE_LOCAL_DIR, chosenPath.replace('/images/',''));
-  }
+  if (chosenPath?.startsWith('/images/')) return 'file://' + path.join(IMAGE_LOCAL_DIR, chosenPath.replace('/images/',''));
   return FALLBACK_IMG;
 }
 
@@ -169,7 +171,7 @@ let CATALOG = { items: [], headers: [], headerRow: 0, sheetName: '' };
 function autodetectHeaderRow(ws){
   if (HEADER_ROW_ENV>0) return HEADER_ROW_ENV;
   const matrix = xlsx.utils.sheet_to_json(ws,{header:1,raw:false,blankrows:false,defval:''});
-  const KEY_HINTS = ['item','model','#','picture','image','description','short','precio','pvp','packaging','master','cbm','bulb','length','power','lead','connector','function','accesor'];
+  const KEY_HINTS = ['item','model','#','picture','image','description','short','packaging','master','cbm','bulb','length','power','lead','connector','function','accesor'];
   let bestRow=1, bestScore=-1;
   for (let r=0; r<Math.min(30, matrix.length); r++){
     const row = (matrix[r]||[]).map(v=>String(v||'').trim());
@@ -186,8 +188,9 @@ function loadCatalog(){
   if (!fs.existsSync(CATALOG_XLSX)) return state;
 
   const wb=xlsx.read(fs.readFileSync(CATALOG_XLSX),{type:'buffer'});
-  let sheetName = SHEET_NAME_ENV && wb.SheetNames.includes(SHEET_NAME_ENV) ? SHEET_NAME_ENV
-                 : (wb.SheetNames.find(n=>/FOB|Master/i.test(n)) || wb.SheetNames[0]);
+  let sheetName = SHEET_NAME_ENV && wb.SheetNames.includes(SHEET_NAME_ENV)
+    ? SHEET_NAME_ENV
+    : (wb.SheetNames.find(n=>/FOB|Master/i.test(n)) || wb.SheetNames[0]);
   const ws = wb.Sheets[sheetName] || wb.Sheets[wb.SheetNames[0]];
   if (!ws) return state;
   state.sheetName = sheetName;
@@ -214,36 +217,47 @@ function loadCatalog(){
     const nameLong  = String(pick(row, A_NAME_LONG) || '').trim();
     const packaging = String(pick(row, A_PACKAGING_TYPE) || '').trim();
     const masterPack= String(pick(row, A_MASTER_PACK) || '').trim();
+
+    // precios “base” para tarjetas/carrito
     const precioSoriana = toNumber(pick(row, A_PRICE_SORIANA));
     const pvpSoriana    = toNumber(pick(row, A_PVP_SORIANA));
 
     const details = {
       '2026 model'            : model,
       'Item Description'      : nameLong,
+      'Short description'     : shortDesc,
       'CBMs x piece'          : String(pick(row, A_CBM_PER_PIECE)||'').trim(),
       'Packaging type'        : packaging,
       'Bulb Tech'             : String(pick(row, A_BULB_TECH)||'').trim(),
       '# of Bulbs'            : String(pick(row, A_NUM_BULBS)||'').trim(),
       'Color Bulb'            : String(pick(row, A_COLOR_BULB)||'').trim(),
       'Wire Color'            : String(pick(row, A_WIRE_COLOR)||'').trim(),
-      'Total Lenght (m)'      : String(pick(row, A_TOTAL_LENGTH_M)||'').trim(),
+      'Total Length (m)'      : String(pick(row, A_TOTAL_LENGTH_M)||'').trim(),
       'Master Pack'           : masterPack,
       'Power supply'          : String(pick(row, A_POWER_SUPPLY)||'').trim(),
-      'Lighted Lenght (m)'    : String(pick(row, A_LIGHTED_LENGTH_M)||'').trim(),
+      'Lighted Length (m)'    : String(pick(row, A_LIGHTED_LENGTH_M)||'').trim(),
       'Lead in (m)'           : String(pick(row, A_LEAD_IN_M)||'').trim(),
       'Lead out (m)'          : String(pick(row, A_LEAD_OUT_M)||'').trim(),
       'End connector'         : String(pick(row, A_END_CONNECTOR)||'').trim(),
       'Function (#)'          : String(pick(row, A_FUNCTIONS)||'').trim(),
-      'Included accesories'   : String(pick(row, A_INCLUDED_ACC)||'').trim(),
-      'Precio a Soriana'      : Number.isFinite(precioSoriana) ? precioSoriana.toFixed(2) : (pick(row, A_PRICE_SORIANA) || ''),
-      'PVP Soriana (Estimado)': Number.isFinite(pvpSoriana)    ? pvpSoriana.toFixed(2)    : (pick(row, A_PVP_SORIANA) || '')
+      'Included accessories'  : String(pick(row, A_INCLUDED_ACC)||'').trim(),
+      // guardamos también las dos etiquetas para verlas en "Más info"
+      'Precio Soriana'        : Number.isFinite(precioSoriana) ? `$${precioSoriana.toFixed(2)} USD` : (pick(row, A_PRICE_SORIANA)||''),
+      'PVP Soriana (Estimado)': Number.isFinite(pvpSoriana)    ? `$${pvpSoriana.toFixed(2)} MXN`   : (pick(row, A_PVP_SORIANA)||''),
     };
 
     return {
-      model, image, short: shortDesc, packagingType: packaging, masterPack,
+      model,
+      image,
+      short: shortDesc || nameLong, // Fallback
+      packagingType: packaging,
+      masterPack,
+      name: nameLong,
+      // valores numéricos para tarjetas/carrito
       priceSoriana: Number.isFinite(precioSoriana) ? +precioSoriana.toFixed(2) : null,
       pvpSoriana:   Number.isFinite(pvpSoriana)    ? +pvpSoriana.toFixed(2)    : null,
-      name: nameLong, details, raw: row
+      details,
+      raw: row
     };
   }).filter(Boolean);
 
@@ -276,6 +290,40 @@ app.get('/api/products', (req,res)=>{
 });
 
 app.post('/api/reload', async (_,res)=>{ await refreshCatalog(); res.json({ ok:true, count: CATALOG.items.length }); });
+
+// —— Ejecuta el script de Python de imágenes y luego refresca el catálogo
+app.post('/api/reload_images', async (_,res)=>{
+  try{
+    if (!fs.existsSync(PY_IMAGE_SCRIPT)) {
+      return res.status(400).json({ ok:false, error:`No se encontró el script Python en ${PY_IMAGE_SCRIPT}` });
+    }
+    const env = { ...process.env }; // pasa .env al script
+    const cmd = `${PYTHON_BIN} ${JSON.stringify(PY_IMAGE_SCRIPT)}`;
+    console.log('▶ Ejecutando:', cmd);
+
+    const output = await new Promise((resolve, reject)=>{
+      exec(cmd, { cwd: __dirname, env }, (err, stdout, stderr)=>{
+        if (err) return reject(new Error(stderr || err.message));
+        resolve({ stdout, stderr });
+      });
+    });
+
+    // Después de subir imágenes, refrescamos catálogo
+    await refreshCatalog();
+
+    res.json({
+      ok:true,
+      count: CATALOG.items.length,
+      python: {
+        stdout: output.stdout.slice(-4000),
+        stderr: output.stderr.slice(-2000)
+      }
+    });
+  }catch(e){
+    console.error('reload_images error:', e);
+    res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
 
 app.post('/api/interactions', (req,res)=>{
   const { buyer, model, action, note, device, price } = req.body || {};
@@ -334,7 +382,6 @@ app.post('/api/cart/add_custom', async (req, res) => {
       const supported = ['jpeg','jpg','png'];
 
       if (!supported.includes(ext) && Sharp) {
-        // Convertimos a PNG solo si Sharp está disponible
         finalBuffer = await Sharp(buffer).png({ compressionLevel: 9, adaptiveFiltering: true }).toBuffer();
         filename += '.png';
       } else {
@@ -349,9 +396,9 @@ app.post('/api/cart/add_custom', async (req, res) => {
     const customItem = {
       model: item.model,
       note: item.note || '',
-      image: imagePath,     // IMPORTANTE: esta ruta se usará en PDF (sin pasar por Cloudinary)
+      image: imagePath, // PDF preferirá esta imagen (sin pasar por Cloudinary)
       isCustom: true,
-      short: item.note || '',
+      short: item.note || '', // Fallback visual
       price: null,
       pvp: null,
     };
@@ -367,6 +414,7 @@ app.post('/api/cart/add_custom', async (req, res) => {
 });
 
 // ========= Descargar PDF del carrito =========
+// *** SIN PRECIOS ***
 app.get('/api/download_cart_pdf', async (req,res)=>{
   try {
     const buyer = String(req.query.buyer||'').trim();
@@ -392,12 +440,12 @@ app.get('/api/download_cart_pdf', async (req,res)=>{
     const drawTable = async (items, isCustomSection = false) => {
       const tableLeft = doc.page.margins.left;
       const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      // SIN columna de precio
       const cols = [
-        { key:'img',   title:'Imagen',   width: contentWidth * 0.12 },
-        { key:'model', title:'Modelo',   width: contentWidth * 0.18 },
-        { key:'short', title:'Descripción', width: contentWidth * 0.30 },
-        { key:'price', title:'Precio',   width: contentWidth * 0.12 },
-        { key:'note',  title:'Comentario', width: contentWidth * 0.28 },
+        { key:'img',   title:'Imagen',       width: contentWidth * 0.16 },
+        { key:'model', title:'Modelo',       width: contentWidth * 0.20 },
+        { key:'short', title:'Descripción',  width: contentWidth * 0.32 },
+        { key:'note',  title:'Comentario',   width: contentWidth * 0.32 },
       ];
 
       const drawHeader = () => {
@@ -419,13 +467,11 @@ app.get('/api/download_cart_pdf', async (req,res)=>{
       for (const item of items) {
         const catItem = !isCustomSection ? itemsByModel.get(item.model) : null;
 
-        const shortTxt = item.short || catItem?.short || catItem?.name || '';
-        const noteTxt  = item.note || '';
-        const priceVal = (item.price != null) ? Number(item.price) : catItem?.priceSoriana;
-        const priceStr = Number.isFinite(priceVal) ? `$${priceVal.toFixed(2)}` : '';
+        const shortTxt = (item.short || catItem?.short || catItem?.name || '').trim();
+        const noteTxt  = (item.note  || '').trim();
 
         const hShort = doc.heightOfString(shortTxt, { width: cols[2].width - 12 });
-        const hNote  = doc.heightOfString(noteTxt,  { width: cols[4].width - 12 });
+        const hNote  = doc.heightOfString(noteTxt,  { width: cols[3].width - 12 });
         const rowH   = Math.max(84, 16 + Math.max(hShort, hNote));
 
         if (doc.page.height - doc.y < rowH + 40) {
@@ -440,7 +486,7 @@ app.get('/api/download_cart_pdf', async (req,res)=>{
         doc.rect(x, rowY, contentWidth, rowH).stroke('#e5e7eb');
         isOdd = !isOdd;
 
-        // *** FIX clave: para personalizados preferimos la imagen elegida, NO Cloudinary ***
+        // Para personalizados, preferimos la imagen elegida (no Cloudinary)
         const imgUrl = directImageUrlFor(item.model, item.image || catItem?.image, isCustomSection /* preferChosen */);
         const imgX = x + 6, imgY = rowY + 6, imgW = cols[0].width - 12, imgH = rowH - 12;
 
@@ -454,9 +500,7 @@ app.get('/api/download_cart_pdf', async (req,res)=>{
           }
           if (imgBuffer) {
             doc.image(imgBuffer, imgX, imgY, { fit: [imgW, imgH], align: 'center', valign: 'center' });
-          } else {
-            throw new Error('No image buffer');
-          }
+          } else { throw new Error('No image buffer'); }
         } catch (e) {
           console.error(`Error al cargar la imagen para el PDF (${imgUrl}):`, e.message);
           doc.rect(imgX, imgY, imgW, imgH).fillAndStroke('#f3f4f6', '#e5e7eb');
@@ -467,18 +511,16 @@ app.get('/api/download_cart_pdf', async (req,res)=>{
 
         doc.fillColor('#1f2937').text(item.model, x + 6, rowY + 8, { width: cols[1].width - 12 });
         x += cols[1].width;
+
         doc.text(shortTxt, x + 6, rowY + 8, { width: cols[2].width - 12 });
         x += cols[2].width;
-        doc.text(isCustomSection ? '' : priceStr, x + 6, rowY + 8, { width: cols[3].width - 12 });
-        x += cols[3].width;
-        doc.text(isCustomSection ? shortTxt : noteTxt, x + 6, rowY + 8, { width: cols[4].width - 12 });
+
+        doc.text(noteTxt, x + 6, rowY + 8, { width: cols[3].width - 12 });
         doc.y = rowY + rowH;
       }
     };
 
-    if (regularItems.length > 0) {
-      await drawTable(regularItems, false);
-    }
+    if (regularItems.length > 0) await drawTable(regularItems, false);
 
     if (customItems.length > 0) {
       if (doc.page.height - doc.y < 150) doc.addPage();
@@ -518,10 +560,11 @@ app.get('/api/download_cart_excel', async (req,res)=>{
     const itemsByModel = new Map(CATALOG.items.map(p=>[p.model,p]));
     for (const item of cart) {
       const catItem = !item.isCustom ? itemsByModel.get(item.model) : null;
+
       sheet.addRow({
         model: item.model,
-        short: item.isCustom ? item.note : (item.short || catItem?.short || catItem?.name || ''),
-        note: item.isCustom ? item.note : (item.note || '')
+        short: item.isCustom ? (item.note || '') : ((item.short || catItem?.short || catItem?.name || '')),
+        note: item.isCustom ? (item.note || '') : (item.note || '')
       });
     }
 
@@ -599,6 +642,7 @@ app.get('/', (_, res) => {
       <input id="q" placeholder="Buscar por modelo o nombre..." style="flex-grow:1;"/>
       <button class="btn-primary" id="btnbuscar">Buscar</button>
       <button class="btn-ghost" id="reload">Recargar</button>
+      <button class="btn-ghost" id="reloadAll">Recargar + Imágenes</button>
     </div>
 
     <!-- Tarjeta para nuevos productos personalizados -->
@@ -661,7 +705,6 @@ function init(){
   renderBuyer(); setupEventListeners(); updateCartCount();
   fetch('/api/catalog_for_client').then(r=>r.json()).then(d=>{ CATALOG=d||{items:[]}; }).then(()=> buscar());
   setInterval(updateCartCount, 5000);
-  // Mantener tu confirmación original al salir si hay notas sin agregar
   window.addEventListener('beforeunload', e => { if (hasUnsavedNotes()){ e.preventDefault(); e.returnValue=''; } });
 }
 
@@ -687,7 +730,7 @@ async function maybeSaveUnsavedNotes(){
   if (!confirm('Tienes comentarios sin guardar. ¿Quieres agregarlos al carrito antes de continuar?')) return true;
   for (const p of tiles){
     const prod=(CATALOG.items||[]).find(x=>x.model===p.model);
-    await apiCartAdd({ model:p.model, note:p.note, short:prod?.short||'', price:prod?.priceSoriana, pvp:prod?.pvpSoriana, image:prod?.image||'' });
+    await apiCartAdd({ model:p.model, note:p.note, short:prod?.short||prod?.name||'', image:prod?.image||'', price:prod?.priceSoriana, pvp:prod?.pvpSoriana });
   }
   await updateCartCount();
   return true;
@@ -738,12 +781,12 @@ async function renderCartItems(){
         <div class="cart-item-img">\${it.image?\`<img src="\${it.image}" alt="\${it.model}"/>\`:''}</div>
         <div>
           <div style="font-weight:700;margin-bottom:4px;">\${it.model} \${it.isCustom ? '<span class="chip">Personalizado</span>' : ''}</div>
-          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">\${it.short||''}</div>
-          <div style="font-size:12px;margin-bottom:8px;">
-            \${!it.isCustom && it.price!=null?\`<strong>Precio a Soriana:</strong> $\${Number(it.price).toFixed(2)}\`:''}
-            \${!it.isCustom && (it.price!=null && it.pvp!=null)?' · ':''}
-            \${!it.isCustom && it.pvp!=null?\`<strong>PVP Soriana (Est.):</strong> $\${Number(it.pvp).toFixed(2)}\`:''}
+          <div style="font-size:12px;margin:4px 0 8px 0;">
+            \${(!it.isCustom && it.price!=null)?\`<strong>Precio:</strong> $\${Number(it.price).toFixed(2)}\`:''}
+            \${(!it.isCustom && it.pvp!=null && it.price!=null)?' · ':''}
+            \${(!it.isCustom && it.pvp!=null)?\`<strong>PVP (Est.):</strong> $\${Number(it.pvp).toFixed(2)}\`:''}
           </div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">\${it.short||''}</div>
           <textarea class="note edit-note" data-model="\${it.model}" placeholder="Comentario...">\${it.note||''}</textarea>
         </div>
         <button class="btn-ghost del" data-model="\${it.model}" title="Quitar">✖</button>
@@ -762,7 +805,7 @@ async function submitCart(){
 }
 
 function renderDetails(p){
-  const order = ['2026 model','Item Description','Short description','CBMs x piece','Packaging type','Bulb Tech','# of Bulbs','Color Bulb','Wire Color','Total Lenght (m)','Master Pack','Power supply','Lighted Lenght (m)','Lead in (m)','Lead out (m)','End connector','Function (#)','Included accesories','Precio a Soriana','PVP Soriana (Estimado)'];
+  const order = ['2026 model','Item Description','Short description','CBMs x piece','Packaging type','Bulb Tech','# of Bulbs','Color Bulb','Wire Color','Total Length (m)','Master Pack','Power supply','Lighted Length (m)','Lead in (m)','Lead out (m)','End connector','Function (#)','Included accessories','Precio Soriana','PVP Soriana (Estimado)'];
   const attributes = order
     .map(k => [k, p.details?.[k] ?? (k === 'Short description' ? p.short : '')])
     .filter(([_,v]) => String(v||'').trim())
@@ -816,6 +859,25 @@ function setupEventListeners(){
     await fetch('/api/catalog_for_client').then(r=>r.json()).then(d=>{ CATALOG=d||{items:[]}; }).then(()=>buscar());
     btn.textContent=old;
   };
+  document.getElementById('reloadAll').onclick = async ()=>{
+    const btn=document.getElementById('reloadAll'); const old=btn.textContent; btn.textContent='Subiendo imágenes...';
+    try{
+      const r = await fetch('/api/reload_images',{method:'POST'}); 
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error||'Error ejecutando script');
+      if (j.python?.stdout) console.log(j.python.stdout);
+      if (j.python?.stderr) console.warn(j.python.stderr);
+      const cat = await (await fetch('/api/catalog_for_client')).json();
+      CATALOG = cat || { items:[] };
+      await buscar();
+      alert('Imágenes actualizadas y catálogo recargado: ' + (CATALOG.items?.length||0) + ' productos.');
+    }catch(e){
+      console.error(e);
+      alert('Falló la recarga de imágenes: ' + (e.message||e));
+    }finally{
+      btn.textContent=old;
+    }
+  };
   document.getElementById('openCart').onclick = async ()=>{ if(await maybeSaveUnsavedNotes()) openCart(); };
   document.getElementById('closeCart').onclick = closeCart;
   document.getElementById('submitCart').onclick = submitCart;
@@ -826,7 +888,7 @@ function setupEventListeners(){
     const p=(CATALOG.items||[]).find(x=>x.model===model);
     if (btn.classList.contains('add')){
       const tile=btn.closest('.tile'); const note=tile.querySelector('.note')?.value.trim()||'';
-      await apiCartAdd({ model, note, short:p?.short||'', price:p?.priceSoriana, pvp:p?.pvpSoriana, image:p?.image||'' });
+      await apiCartAdd({ model, note, short:p?.short||p?.name||'', image:p?.image||'', price:p?.priceSoriana, pvp:p?.pvpSoriana });
       await updateCartCount();
       await renderCartItems();
     }

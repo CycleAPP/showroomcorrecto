@@ -1,29 +1,12 @@
 {
   "OMNIA": [
     {
-      "model": "TB03",
-      "note": "Hola",
-      "short": "1.5m Prelit Wrap tree, Diam: 0.8m, 200 Warm LED lights, 369 tips, 8 functions, 19 pinecones",
-      "price": 23.65,
-      "pvp": 1655.5,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FTB03"
-    },
-    {
-      "model": "Gato bonito",
-      "note": "Con liz",
-      "image": "/images/CUSTOM_1758326250049.jpeg",
-      "isCustom": true,
-      "short": "Con liz",
+      "model": "X01",
+      "note": "hola",
+      "short": "",
       "price": null,
-      "pvp": null
-    },
-    {
-      "model": "TB02",
-      "note": "sejemplo",
-      "short": "1.8m Prelit Wrap tree, Diam: 0.98m, 300 Warm LED lights, 780 tips, 8 functions, No Decorative elements",
-      "price": 25.98,
-      "pvp": 1818.6,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FTB02"
+      "pvp": null,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX01"
     }
   ],
   "SORIANA": [
@@ -60,6 +43,80 @@
       "price": 5.49,
       "pvp": 384.3,
       "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FT81N"
+    },
+    {
+      "model": "X01",
+      "note": "hola",
+      "short": "",
+      "price": 0.06,
+      "pvp": 4.2,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX01"
+    },
+    {
+      "model": "X02",
+      "note": "a ver este",
+      "short": "",
+      "price": 0.06,
+      "pvp": 4.2,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX02"
+    },
+    {
+      "model": "producto prueba",
+      "note": "prueba numero 1",
+      "image": "/images/CUSTOM_1758516569989.png",
+      "isCustom": true,
+      "short": "prueba numero 1",
+      "price": null,
+      "pvp": null
+    }
+  ],
+  "CLUBES": [],
+  "LIVERPOOL": [
+    {
+      "model": "X01",
+      "note": "hola",
+      "short": "",
+      "price": 0.06,
+      "pvp": 4.2,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX01"
+    }
+  ],
+  "3B": [],
+  "DSW": [],
+  "CHEDRAUI": [
+    {
+      "model": "X02",
+      "note": "ill switch",
+      "short": "100 Mini Lights, Multi Bulb, Green Wire, end connector",
+      "price": 0.06,
+      "pvp": 4.2,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX02"
+    }
+  ],
+  "LA COMER": [
+    {
+      "model": "X01",
+      "note": "pruebasss",
+      "short": "",
+      "price": 0.06,
+      "pvp": 4.2,
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX01"
+    },
+    {
+      "model": "X05",
+      "note": "ljidaoisdja",
+      "short": "100 LED lights type mini, warm white bulb, green wire, end connector",
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX05",
+      "price": 0.06,
+      "pvp": 4.2
+    },
+    {
+      "model": "X06",
+      "note": "dsa",
+      "short": "100 LED lights type mini, multi bulb, green wire, end connector",
+      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX06",
+      "price": 0.06,
+      "pvp": 4.2
     }
   ]
 }
