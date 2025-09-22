@@ -73,12 +73,13 @@
   "CLUBES": [],
   "LIVERPOOL": [
     {
-      "model": "X01",
-      "note": "hola",
-      "short": "",
-      "price": 0.06,
-      "pvp": 4.2,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX01"
+      "model": "hoka",
+      "note": "hoknla",
+      "image": "/images/CUSTOM_1758583223694.png",
+      "isCustom": true,
+      "short": "hoknla",
+      "price": null,
+      "pvp": null
     }
   ],
   "3B": [],
