@@ -1,9 +1,11 @@
-// server.js — Lumina Showroom 2025 (COMPLETO Y CORREGIDO)
-// - Imágenes de catálogo: SOLO Cloudinary (si no hay, intenta URL del Excel vía /img; no usa locales)
-// - Botón "Recargar": ejecuta Python (subida incremental) y luego refresca catálogo
+// server.js — Lumina Showroom 2025 (COMPLETO Y CORREGIDO FINAL)
+// - Imágenes de catálogo: Cloudinary preferido; si no hay, intenta URL del Excel vía /img (no locales)
+// - Botón "Recargar": lanza Python (subida incremental) y luego refresca catálogo
 // - Productos personalizados: guarda foto local y salen en carrito + PDF/Excel
-// - Precios por comprador
-// - HTML embebido sin backticks internos (evita errores de sintaxis)
+// - Precios por comprador (etiquetas FOB USD y PVP MXN)
+// - Excel incluye columna "Imagen URL" usando la MISMA URL que se muestra en la app y EMBEBE la imagen
+// - PDF usa la MISMA imagen que quedó en el carrito (http, /img?u=..., /images/...)
+// - Modales: botón Cerrar funcional, clic fuera y tecla Escape
 
 import 'dotenv/config';
 import express from 'express';
@@ -37,11 +39,13 @@ const EXCEL_URL        = (process.env.EXCEL_URL  || '').trim();
 const EXCEL_PATH       = (process.env.EXCEL_PATH || '').trim();
 const SHEET_NAME_ENV   = (process.env.SHEET_NAME || '').trim();   // '' => autodetect
 const HEADER_ROW_ENV   = Number(process.env.HEADER_ROW || 0);     // 0 => autodetect
+const IMG_VER = (process.env.IMG_VER || '').trim(); // ej. 2025-09-22 ó build-7
+
 
 const BUYERS = (process.env.BUYERS || 'OMNIA,HEB,SORIANA,CHEDRAUI,LA COMER,LIVERPOOL,SEARS,3B,CLUBES,DSW,CALIMAX')
   .split(',').map(s => s.trim()).filter(Boolean);
 
-// Cloudinary (obligatorio para catálogo)
+// Cloudinary
 const CLOUDINARY_CLOUD_NAME = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
 const CLOUDINARY_FOLDER     = (process.env.CLOUDINARY_FOLDER || 'showroom_2025').trim();
 
@@ -113,9 +117,12 @@ function normalizeDriveUrl(u){
   return s;
 }
 const modelBase = m => String(m||'').trim().replace(/[^\w\-]+/g,'_');
-const cloudinaryUrlForModel = m => CLOUDINARY_CLOUD_NAME
-  ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto/${CLOUDINARY_FOLDER}/${modelBase(m)}`
-  : '';
+const cloudinaryUrlForModel = m => {
+  if (!CLOUDINARY_CLOUD_NAME) return '';
+  const base = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto/${CLOUDINARY_FOLDER}/${modelBase(m)}`;
+  return IMG_VER ? `${base}?v=${encodeURIComponent(IMG_VER)}` : base;
+};
+
 
 function toNumber(v){
   const s=String(v??'').trim(); if (!s) return NaN;
@@ -125,10 +132,10 @@ function toNumber(v){
   return Number.isFinite(n)?n:NaN;
 }
 
-// Imagen final para catálogo: SOLO Cloudinary; si no existe, intenta URL del Excel (proxy) y si no, fallback
+// Imagen final para catálogo (preferir Cloudinary; fallback a Excel; luego dummy)
 function catalogImageFor(model, xlsUrl) {
   const cld = cloudinaryUrlForModel(model);
-  if (cld) return cld; // preferido
+  if (cld) return cld;
   const fromXls = normalizeDriveUrl(xlsUrl || '');
   return fromXls ? `/img?u=${encodeURIComponent(fromXls)}` : FALLBACK_IMG;
 }
@@ -201,7 +208,7 @@ function loadCatalog(){
     if (!model) return null;
 
     const fromXls   = String(pick(row, A_IMAGE) || '').trim();
-    const image     = catalogImageFor(model, fromXls); // SOLO Cloudinary (con fallback a Excel URL y luego dummy)
+    const image     = catalogImageFor(model, fromXls);
 
     const shortDesc = String(pick(row, A_SHORT) || '').trim();
     const nameLong  = String(pick(row, A_NAME_LONG) || '').trim();
@@ -219,7 +226,6 @@ function loadCatalog(){
       };
     }
 
-    // Base compat
     const precioBase = prices['SORIANA']?.fob ?? null;
     const pvpBase    = prices['SORIANA']?.pvp ?? null;
 
@@ -246,7 +252,7 @@ function loadCatalog(){
 
     return {
       model,
-      image,
+      image, // <- se usa en UI, Excel y como base en PDF para no personalizados
       short: shortDesc || nameLong,
       packagingType: packaging,
       masterPack,
@@ -289,14 +295,17 @@ app.get('/api/products', (req,res)=>{
 
 app.post('/api/reload', async (_,res)=>{ await refreshCatalog(); res.json({ ok:true, count: CATALOG.items.length }); });
 
-// Ejecutar script Python (incremental) y NO esperar a que termine para responder
+// Ejecutar script Python (incremental) y responder al instante
 app.post('/api/reload_images', (req, res) => {
   try {
-    const py = spawn('python3', ['extract_and_upload_images_by_model_incremental.py'], { cwd: __dirname });
+    const scriptName = fs.existsSync(path.join(__dirname, 'extract_and_upload_images_by_model_incremental.py'))
+      ? 'extract_and_upload_images_by_model_incremental.py'
+      : 'extract_and_upload_images_by_model.py';
+    const py = spawn('python3', [scriptName], { cwd: __dirname });
     py.stdout.on('data', d => process.stdout.write(d.toString()));
     py.stderr.on('data', d => process.stderr.write(d.toString()));
     py.on('close', code => console.log('Imagenes: proceso python finalizado con código', code));
-    res.json({ ok:true, message: 'Script de imágenes lanzado.' });
+    res.json({ ok:true, message: `Script de imágenes lanzado (${scriptName}).` });
   } catch (e) {
     console.error('No se pudo lanzar el script de imágenes:', e);
     res.status(500).json({ ok:false, error:'No se pudo lanzar el script de imágenes.' });
@@ -373,7 +382,7 @@ app.post('/api/cart/add_custom', async (req, res) => {
     const customItem = {
       model: item.model,
       note: item.note || '',
-      image: imagePath,     // esta ruta se usará también en PDF
+      image: imagePath,     // esta ruta se usará tal cual en PDF y Excel
       isCustom: true,
       short: item.note || '',
       price: null,
@@ -391,36 +400,54 @@ app.post('/api/cart/add_custom', async (req, res) => {
 });
 
 // ========= Descargar PDF del carrito (SIN PRECIOS) =========
-app.get('/api/download_cart_pdf', async (req,res)=>{
+app.get('/api/download_cart_pdf', async (req, res) => {
   try {
-    const buyer = String(req.query.buyer||'').trim();
+    const buyer = String(req.query.buyer || '').trim();
     const cart = cartOf(buyer);
     if (!buyer) return res.status(400).send('buyer requerido');
     if (!cart.length) return res.status(400).send('El carrito está vacío');
 
-    res.setHeader('Content-Type','application/pdf');
+    res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="seleccion-${buyer}.pdf"`);
-    const doc = new PDFDocument({ size: 'A4', margins: { top: 40, bottom: 40, left: 45, right: 45 }});
+
+    const doc = new PDFDocument({ size: 'A4', margins: { top: 40, bottom: 40, left: 45, right: 45 } });
     doc.pipe(res);
 
     doc.fontSize(18).text('Lumina Showroom 2025 — Selección', { align: 'left' });
     doc.moveDown(0.2);
-    doc.fontSize(10).fillColor('#555').text(`Comprador: ${buyer}   ·   Fecha: ${new Date().toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' })}`);
-    doc.moveDown(1.5);
-    doc.fillColor('#000');
+    doc.fontSize(10).fillColor('#555')
+       .text(`Comprador: ${buyer}   ·   Fecha: ${new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}`);
+    doc.moveDown(1.5).fillColor('#000');
 
-    const regularItems = cart.filter(item => !item.isCustom);
-    const customItems  = cart.filter(item => item.isCustom);
-    const itemsByModel = new Map(CATALOG.items.map(p=>[p.model,p]));
+    const itemsByModel = new Map(CATALOG.items.map(p => [p.model, p]));
 
-    const drawTable = async (items, isCustomSection = false) => {
+    const sameUrlAsUI = (item) => {
+      // Para no personalizados usa la url que quedó en el carrito (ya es Cloudinary con ?v=IMG_VER)
+      // Para personalizados usa su /images/... guardado.
+      const cat = itemsByModel.get(item.model) || null;
+      let u = item.image || (cat?.image || '');
+      if (!u) return '';
+      if (process.env.IMG_VER && u.startsWith('http') && !/[?&]v=/.test(u)) {
+        u += (u.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(process.env.IMG_VER);
+      }
+      return u;
+    };
+
+    const drawTable = async (items, sectionTitle = null) => {
+      if (sectionTitle) {
+        if (doc.page.height - doc.y < 120) doc.addPage();
+        doc.moveDown(1);
+        doc.fontSize(14).text(sectionTitle, { align: 'left' });
+        doc.moveDown(0.5);
+      }
+
       const tableLeft = doc.page.margins.left;
       const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
       const cols = [
-        { key:'img',   title:'Imagen',     width: contentWidth * 0.14 },
-        { key:'model', title:'Modelo',     width: contentWidth * 0.20 },
-        { key:'short', title:'Descripción',width: contentWidth * 0.30 },
-        { key:'note',  title:'Comentario', width: contentWidth * 0.36 },
+        { key: 'img',   title: 'Imagen',      width: contentWidth * 0.14 },
+        { key: 'model', title: 'Modelo',      width: contentWidth * 0.20 },
+        { key: 'short', title: 'Descripción', width: contentWidth * 0.30 },
+        { key: 'note',  title: 'Comentario',  width: contentWidth * 0.36 },
       ];
 
       const drawHeader = () => {
@@ -440,8 +467,7 @@ app.get('/api/download_cart_pdf', async (req,res)=>{
 
       let isOdd = true;
       for (const item of items) {
-        const catItem = !isCustomSection ? itemsByModel.get(item.model) : null;
-
+        const catItem = itemsByModel.get(item.model) || null;
         const shortTxt = item.short || catItem?.short || catItem?.name || '';
         const noteTxt  = item.note || '';
 
@@ -461,28 +487,34 @@ app.get('/api/download_cart_pdf', async (req,res)=>{
         doc.rect(x, rowY, contentWidth, rowH).stroke('#e5e7eb');
         isOdd = !isOdd;
 
-        // Imagen: si es personalizado usamos su elección; si no, Cloudinary/Excel ya viene en catItem.image
-        let imgUrl = isCustomSection ? item.image : (catItem?.image || '');
+        // Imagen: EXACTA del carrito (Cloudinary con ?v=..., /img?u=..., o /images/... para personalizados)
+        const imgUrl = sameUrlAsUI(item);
+
         try {
           let imgBuffer = null;
-          if (imgUrl && imgUrl.startsWith('http')) {
-            const resp = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 6000 });
+          if (imgUrl.startsWith('http')) {
+            const resp = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 8000 });
             imgBuffer = Buffer.from(resp.data);
-          } else if (imgUrl && imgUrl.startsWith('/images/')) {
-            imgBuffer = fs.readFileSync(path.join(IMAGE_LOCAL_DIR, imgUrl.replace('/images/','')));
+          } else if (imgUrl.startsWith('/img?u=')) {
+            const abs = `http://127.0.0.1:${PORT}${imgUrl}`;
+            const resp = await axios.get(abs, { responseType: 'arraybuffer', timeout: 8000 });
+            imgBuffer = Buffer.from(resp.data);
+          } else if (imgUrl.startsWith('/images/')) {
+            imgBuffer = fs.readFileSync(path.join(IMAGE_LOCAL_DIR, imgUrl.replace('/images/', '')));
           }
+
           if (imgBuffer) {
             doc.image(imgBuffer, x + 6, rowY + 6, { fit: [cols[0].width - 12, rowH - 12], align: 'center', valign: 'center' });
           } else {
             throw new Error('No image buffer');
           }
-        } catch (e) {
+        } catch {
           doc.rect(x + 6, rowY + 6, cols[0].width - 12, rowH - 12).fillAndStroke('#f3f4f6', '#e5e7eb');
-          doc.fontSize(8).fillColor('#9ca3af').text('Sin imagen', x + 6, rowY + (rowH/2) - 6, { width: cols[0].width - 12, align: 'center' });
+          doc.fontSize(8).fillColor('#9ca3af')
+             .text('Sin imagen', x + 6, rowY + (rowH / 2) - 6, { width: cols[0].width - 12, align: 'center' });
         }
 
         x += cols[0].width;
-
         doc.fillColor('#1f2937').text(item.model, x + 6, rowY + 8, { width: cols[1].width - 12 });
         x += cols[1].width;
         doc.text(shortTxt, x + 6, rowY + 8, { width: cols[2].width - 12 });
@@ -492,64 +524,151 @@ app.get('/api/download_cart_pdf', async (req,res)=>{
       }
     };
 
-    if (regularItems.length > 0) await drawTable(regularItems, false);
-    if (customItems.length > 0) {
-      if (doc.page.height - doc.y < 150) doc.addPage();
-      doc.moveDown(2);
-      doc.fontSize(14).text('Productos Adicionales', { align: 'left' });
-      doc.moveDown(1);
-      await drawTable(customItems, true);
-    }
+    const regularItems = cart.filter(i => !i.isCustom);
+    const customItems  = cart.filter(i =>  i.isCustom);
+
+    if (regularItems.length) await drawTable(regularItems, null);
+    if (customItems.length)  await drawTable(customItems, 'Productos Adicionales');
 
     doc.end();
-  } catch(e) {
+  } catch (e) {
     console.error('PDF generation error general:', e);
     res.status(500).send('Error al generar el PDF.');
   }
 });
 
+
+
 // ========= Descargar Excel del carrito =========
-app.get('/api/download_cart_excel', async (req,res)=>{
+app.get('/api/download_cart_excel', async (req, res) => {
   try {
-    const buyer = String(req.query.buyer||'').trim();
+    const buyer = String(req.query.buyer || '').trim();
     if (!buyer) return res.status(400).send('buyer requerido');
+
     const cart = cartOf(buyer);
     if (!cart.length) return res.status(400).send('El carrito está vacío');
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Selección');
 
+    // Layout: 1) Imagen 2) Modelo 3) Descripción 4) Comentario 5) Imagen URL (texto)
     sheet.columns = [
-      { header: 'Modelo',       key: 'model', width: 25 },
-      { header: 'Descripción',  key: 'short', width: 60 },
-      { header: 'Comentario',   key: 'note',  width: 50 }
+      { header: 'Imagen',       key: 'imgPH',    width: 16 }, // columna "contenedora" (solo para ancho)
+      { header: 'Modelo',       key: 'model',    width: 18 },
+      { header: 'Descripción',  key: 'short',    width: 60 },
+      { header: 'Comentario',   key: 'note',     width: 40 },
+      { header: 'Imagen URL',   key: 'imageUrl', width: 80 },
     ];
-
     sheet.getRow(1).font = { bold: true };
-    sheet.getRow(1).fill = { type: 'pattern', pattern:'solid', fgColor:{ argb:'FFEEEEEE' } };
+    sheet.getRow(1).alignment = { vertical: 'middle' };
+    sheet.getRow(1).height = 22;
 
-    const itemsByModel = new Map(CATALOG.items.map(p=>[p.model,p]));
-    for (const item of cart) {
-      const catItem = !item.isCustom ? itemsByModel.get(item.model) : null;
+    // Altura homogénea por fila para que la imagen no empuje nada
+    const ROW_H = 90;         // px (ExcelJS usa puntos aprox; 1pt ~ 1.33px, pero esto funciona bien)
+    const IMG_W = 88;         // px
+    const IMG_H = 88;         // px (cuadrada para no aplastar)
+    sheet.properties.defaultRowHeight = ROW_H;
+
+    const itemsByModel = new Map(CATALOG.items.map(p => [p.model, p]));
+
+    const sameUrlAsUI = (item) => {
+      const cat = itemsByModel.get(item.model) || null;
+      let u = item.image || (cat?.image || '');
+      if (!u) return '';
+      if (process.env.IMG_VER && u.startsWith('http') && !/[?&]v=/.test(u)) {
+        u += (u.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(process.env.IMG_VER);
+      }
+      return u;
+    };
+
+    // 1) Agregamos filas (texto)
+    cart.forEach((item) => {
+      const cat = itemsByModel.get(item.model) || null;
+      const uiImage = sameUrlAsUI(item);
       sheet.addRow({
+        imgPH: '', // solo placeholder para mantener columna
         model: item.model,
-        short: item.isCustom ? (item.note||'') : (item.short || catItem?.short || catItem?.name || ''),
-        note: item.isCustom ? (item.note||'') : (item.note || '')
+        short: item.isCustom ? (item.note || '') : (item.short || cat?.short || cat?.name || ''),
+        note:  item.isCustom ? (item.note || '') : (item.note || ''),
+        imageUrl: uiImage,
       });
-    }
+    });
 
+    // Alinear textos
     sheet.getColumn('short').alignment = { wrapText: true, vertical: 'top' };
     sheet.getColumn('note').alignment  = { wrapText: true, vertical: 'top' };
 
-    res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    // 2) Insertar imágenes ANCLADAS a cada fila (col A), sin distorsión y sin recorrer filas
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      const imgUrl = sameUrlAsUI(item);
+      if (!imgUrl) continue;
+
+      try {
+        let imgBuffer = null;
+        let ext = 'png';
+
+        if (imgUrl.startsWith('http')) {
+          const resp = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 8000 });
+          imgBuffer = Buffer.from(resp.data);
+          // best effort: intentar deducir extensión por cabecera
+          const ct = (resp.headers['content-type'] || '').toLowerCase();
+          if (ct.includes('jpeg') || ct.includes('jpg')) ext = 'jpeg';
+          else if (ct.includes('png')) ext = 'png';
+          else if (ct.includes('webp')) ext = 'png'; // Excel no soporta webp: lo dejamos como png
+        } else if (imgUrl.startsWith('/img?u=')) {
+          const abs = `http://127.0.0.1:${PORT}${imgUrl}`;
+          const resp = await axios.get(abs, { responseType: 'arraybuffer', timeout: 8000 });
+          imgBuffer = Buffer.from(resp.data);
+          const ct = (resp.headers['content-type'] || '').toLowerCase();
+          if (ct.includes('jpeg') || ct.includes('jpg')) ext = 'jpeg';
+          else if (ct.includes('png')) ext = 'png';
+        } else if (imgUrl.startsWith('/images/')) {
+          // Solo personalizados
+          const p = path.join(IMAGE_LOCAL_DIR, imgUrl.replace('/images/', ''));
+          if (fs.existsSync(p)) {
+            imgBuffer = fs.readFileSync(p);
+            const lower = p.toLowerCase();
+            if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) ext = 'jpeg';
+            else ext = 'png';
+          }
+        }
+
+        if (!imgBuffer) continue;
+
+        const imageId = workbook.addImage({
+          buffer: imgBuffer,
+          extension: ext,
+        });
+
+        // Fila real en Excel (1 = header). Nuestra primera data es fila 2.
+        const excelRow = i + 2;
+
+        sheet.addImage(imageId, {
+          tl: { col: 0, row: excelRow - 1 },   // columna A (índice 0), fila actual
+          ext: { width: IMG_W, height: IMG_H },// tamaño fijo, evita “aplastadas”
+          editAs: 'oneCell',
+        });
+
+        // Ajustar altura exacta de la fila (por si el defaultRowHeight no aplica en todos)
+        sheet.getRow(excelRow).height = ROW_H;
+      } catch (e) {
+        console.warn('No se pudo embeber imagen en Excel para', item.model, e.message);
+      }
+    }
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="seleccion-${buyer}.xlsx"`);
     await workbook.xlsx.write(res);
     res.end();
-  } catch(e) {
+  } catch (e) {
     console.error('Excel generation error:', e);
     res.status(500).send('Error al generar el Excel.');
   }
 });
+
+
+
 
 // ========= UI embebida (SIN backticks internos) =========
 app.get('/', (_, res) => {
@@ -692,8 +811,8 @@ app.get('/', (_, res) => {
     if (!data.items||!data.items.length){ grid.innerHTML='<p>No se encontraron productos.</p>'; return; }
     data.items.forEach(function(p){
       const cur = (p.prices && p.prices[currentBuyer]) || {};
-      const chipPrecio = (cur.fob!=null) ? '<span class="chip">Precio: $'+Number(cur.fob).toFixed(2)+'</span>' : '';
-      const chipPvp    = (cur.pvp!=null) ? '<span class="chip">PVP (Est.): $'+Number(cur.pvp).toFixed(2)+'</span>' : '';
+      const chipPrecio = (cur.fob!=null) ? '<span class="chip">Precio FOB (USD): $'+Number(cur.fob).toFixed(2)+'</span>' : '';
+      const chipPvp    = (cur.pvp!=null) ? '<span class="chip">PVP Estimado (MXN): $'+Number(cur.pvp).toFixed(2)+'</span>' : '';
 
       const card=document.createElement('div'); card.className='tile';
       card.innerHTML =
@@ -733,8 +852,8 @@ app.get('/', (_, res) => {
         if (!it.isCustom) {
           const prod = prodMap.get(it.model);
           const cur  = (prod && prod.prices && prod.prices[currentBuyer]) || {};
-          const chip1 = (cur.fob!=null) ? '<strong>Precio:</strong> $'+Number(cur.fob).toFixed(2) : '';
-          const chip2 = (cur.pvp!=null) ? '<strong>PVP (Est.):</strong> $'+Number(cur.pvp).toFixed(2) : '';
+          const chip1 = (cur.fob!=null) ? '<strong>Precio FOB (USD):</strong> $'+Number(cur.fob).toFixed(2) : '';
+          const chip2 = (cur.pvp!=null) ? '<strong>PVP Estimado (MXN):</strong> $'+Number(cur.pvp).toFixed(2) : '';
           priceHtml = [chip1, chip2].filter(Boolean).join(' · ');
         }
         const desc = it.short || (prodMap.get(it.model)||{}).short || (prodMap.get(it.model)||{}).name || '';
@@ -766,8 +885,8 @@ app.get('/', (_, res) => {
 
   function renderDetails(p){
     const cur = (p.prices && p.prices[currentBuyer]) || {};
-    const chipPrecio = (cur.fob!=null) ? '<span class="chip">Precio: $'+Number(cur.fob).toFixed(2)+'</span>' : '';
-    const chipPvp    = (cur.pvp!=null) ? '<span class="chip">PVP (Est.): $'+Number(cur.pvp).toFixed(2)+'</span>' : '';
+    const chipPrecio = (cur.fob!=null) ? '<span class="chip">Precio FOB (USD): $'+Number(cur.fob).toFixed(2)+'</span>' : '';
+    const chipPvp    = (cur.pvp!=null) ? '<span class="chip">PVP Estimado (MXN): $'+Number(cur.pvp).toFixed(2)+'</span>' : '';
 
     const order = ['2026 model','Item Description','Short description','CBMs x piece','Packaging type','Bulb Tech','# of Bulbs','Color Bulb','Wire Color','Total Length (m)','Master Pack','Power supply','Lighted Length (m)','Lead in (m)','Lead out (m)','End connector','Function (#)','Included accessories'];
     const attributes = order
@@ -794,6 +913,10 @@ app.get('/', (_, res) => {
     document.getElementById('detailTitle').textContent = p.model;
     renderDetails(p);
     document.getElementById('detailModal').classList.add('open');
+  }
+
+  function closeDetail(){
+    document.getElementById('detailModal').classList.remove('open');
   }
 
   async function downloadFile(url, defaultFilename) {
@@ -848,7 +971,14 @@ app.get('/', (_, res) => {
       if (btn.classList.contains('add')){
         const tile=btn.closest('.tile'); const note=(tile.querySelector('.note')||{}).value?.trim()||'';
         const cur = (p && p.prices && p.prices[currentBuyer]) || {};
-        await apiCartAdd({ model:model, note:note, short:(p?(p.short||p.name):''), image:(p&&p.image)||'', price:(cur.fob!=null)?cur.fob:null, pvp:(cur.pvp!=null)?cur.pvp:null });
+        await apiCartAdd({
+          model: model,
+          note: note,
+          short: (p?(p.short||p.name):''),
+          image: (p&&p.image)||'',  // <- guardamos EXACTAMENTE la misma URL que ve el usuario
+          price: (cur.fob!=null)?cur.fob:null,
+          pvp:   (cur.pvp!=null)?cur.pvp:null
+        });
         await updateCartCount();
         await renderCartItems();
       }
@@ -870,6 +1000,16 @@ app.get('/', (_, res) => {
     document.getElementById('downloadPdf').onclick = function(){ downloadFile('/api/download_cart_pdf?buyer=' + encodeURIComponent(currentBuyer), 'seleccion-'+currentBuyer+'.pdf'); };
     document.getElementById('downloadExcel').onclick = function(){ downloadFile('/api/download_cart_excel?buyer=' + encodeURIComponent(currentBuyer), 'seleccion-'+currentBuyer+'.xlsx'); };
 
+    // ---- Modal Detalle: cerrar con botón, clic fuera y tecla ESC ----
+    document.getElementById('closeDetail').onclick = closeDetail;
+    document.getElementById('detailModal').addEventListener('click', function(e){
+      if (e.target && e.target.id === 'detailModal') closeDetail();
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape' && document.getElementById('detailModal').classList.contains('open')) closeDetail();
+    });
+
+    // ---- Nuevo producto personalizado ----
     var imagePreview = document.getElementById('imagePreview');
     var imageInput = document.getElementById('newProductImage');
     var addBtn = document.getElementById('addNewProductBtn');

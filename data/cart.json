@@ -2,120 +2,53 @@
   "OMNIA": [
     {
       "model": "X01",
-      "note": "hola",
-      "short": "",
-      "price": null,
-      "pvp": null,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX01"
-    }
-  ],
-  "SORIANA": [
-    {
-      "model": "AX51",
-      "note": "hola",
-      "short": "Serie LED 300 luz calida y 8 funciones",
-      "price": 3.9,
-      "pvp": 234,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FAX51"
-    }
-  ],
-  "HEB": [
-    {
-      "model": "T52N",
-      "note": "Luces duales",
-      "short": "2.1m Prelit tree, Diam: 1.3m, 500 Warm LED lights, 8 functions, No Decorative elements",
-      "price": 72.34,
-      "pvp": 5063.8,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FT52N"
-    },
-    {
-      "model": "T91N",
-      "note": "incluir baterias",
-      "short": "200cm garland, Diam: 0.25m, 30 Warm LED lights, Timer function, 10 pinecones",
-      "price": 8.04,
-      "pvp": 562.8,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FT91N"
-    },
-    {
-      "model": "T81N",
-      "note": "quitar piñas",
-      "short": "50cm wreath, 30 Warm LED lights, Timer function, 4 pinecones",
-      "price": 5.49,
-      "pvp": 384.3,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FT81N"
-    },
-    {
-      "model": "X01",
-      "note": "hola",
-      "short": "",
-      "price": 0.06,
-      "pvp": 4.2,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX01"
-    },
-    {
-      "model": "X02",
-      "note": "a ver este",
-      "short": "",
-      "price": 0.06,
-      "pvp": 4.2,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX02"
-    },
-    {
-      "model": "producto prueba",
-      "note": "prueba numero 1",
-      "image": "/images/CUSTOM_1758516569989.png",
-      "isCustom": true,
-      "short": "prueba numero 1",
+      "note": "asdp",
+      "short": "100 Mini Lights, Clear Bulb, Green Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X01",
       "price": null,
       "pvp": null
     }
   ],
-  "CLUBES": [],
-  "LIVERPOOL": [
-    {
-      "model": "hoka",
-      "note": "hoknla",
-      "image": "/images/CUSTOM_1758583223694.png",
-      "isCustom": true,
-      "short": "hoknla",
-      "price": null,
-      "pvp": null
-    }
-  ],
-  "3B": [],
-  "DSW": [],
   "CHEDRAUI": [
     {
-      "model": "X02",
-      "note": "ill switch",
-      "short": "100 Mini Lights, Multi Bulb, Green Wire, end connector",
+      "model": "X01",
+      "note": "asd",
+      "short": "100 Mini Lights, Clear Bulb, Green Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X01",
       "price": 0.06,
-      "pvp": 4.2,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX02"
+      "pvp": 4.2
     }
   ],
-  "LA COMER": [
+  "LIVERPOOL": [
     {
       "model": "X01",
-      "note": "pruebasss",
-      "short": "",
-      "price": 0.06,
-      "pvp": 4.2,
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX01"
-    },
-    {
-      "model": "X05",
-      "note": "ljidaoisdja",
-      "short": "100 LED lights type mini, warm white bulb, green wire, end connector",
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX05",
+      "note": "prueba",
+      "short": "100 Mini Lights, Clear Bulb, Green Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X01",
       "price": 0.06,
       "pvp": 4.2
     },
     {
-      "model": "X06",
-      "note": "dsa",
-      "short": "100 LED lights type mini, multi bulb, green wire, end connector",
-      "image": "/img?u=https%3A%2F%2Fres.cloudinary.com%2Fdzexlyboi%2Fimage%2Fupload%2Ff_auto%2Cq_auto%2Fshowroom_2025%2FX06",
+      "model": "X03",
+      "note": "asdjop",
+      "short": "100 Mini Lights, Clear Bulb, White  Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X03",
+      "price": 0.06,
+      "pvp": 4.2
+    },
+    {
+      "model": "X04",
+      "note": "asd",
+      "short": "100 Mini Lights, Multi Bulb, White Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X04",
+      "price": 0.06,
+      "pvp": 4.2
+    },
+    {
+      "model": "X07",
+      "note": "dasd",
+      "short": "100 LED lights type mini, warm white bulb, white wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X07",
       "price": 0.06,
       "pvp": 4.2
     }
