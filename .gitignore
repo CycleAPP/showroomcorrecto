@@ -7,3 +7,4 @@ venv/
 data/*.xlsx
 data/*.csv
 credentials.json
+data/cart.json
