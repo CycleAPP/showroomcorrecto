@@ -1,6 +1,7 @@
-// server.js — Lumina Showroom 2025 (COMPLETO Y CORREGIDO FINAL)
+// server.js — Lumina Showroom 2025 (COMPLETO Y CORREGIDO FINAL + LOGS EN VIVO)
 // - Imágenes de catálogo: Cloudinary preferido; si no hay, intenta URL del Excel vía /img (no locales)
 // - Botón "Recargar": lanza Python (subida incremental) y luego refresca catálogo
+// - NUEVO: /api/reload_images_stream (SSE) para ver logs en vivo del Python en el navegador
 // - Productos personalizados: guarda foto local y salen en carrito + PDF/Excel
 // - Precios por comprador (etiquetas FOB USD y PVP MXN)
 // - Excel incluye columna "Imagen URL" usando la MISMA URL que se muestra en la app y EMBEBE la imagen
@@ -40,7 +41,6 @@ const EXCEL_PATH       = (process.env.EXCEL_PATH || '').trim();
 const SHEET_NAME_ENV   = (process.env.SHEET_NAME || '').trim();   // '' => autodetect
 const HEADER_ROW_ENV   = Number(process.env.HEADER_ROW || 0);     // 0 => autodetect
 const IMG_VER = (process.env.IMG_VER || '').trim(); // ej. 2025-09-22 ó build-7
-
 
 const BUYERS = (process.env.BUYERS || 'OMNIA,HEB,SORIANA,CHEDRAUI,LA COMER,LIVERPOOL,SEARS,3B,CLUBES,DSW,CALIMAX')
   .split(',').map(s => s.trim()).filter(Boolean);
@@ -122,7 +122,6 @@ const cloudinaryUrlForModel = m => {
   const base = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto/${CLOUDINARY_FOLDER}/${modelBase(m)}`;
   return IMG_VER ? `${base}?v=${encodeURIComponent(IMG_VER)}` : base;
 };
-
 
 function toNumber(v){
   const s=String(v??'').trim(); if (!s) return NaN;
@@ -295,7 +294,7 @@ app.get('/api/products', (req,res)=>{
 
 app.post('/api/reload', async (_,res)=>{ await refreshCatalog(); res.json({ ok:true, count: CATALOG.items.length }); });
 
-// Ejecutar script Python (incremental) y responder al instante
+// Ejecutar script Python (incremental) y responder al instante (compatibilidad)
 app.post('/api/reload_images', (req, res) => {
   try {
     const scriptName = fs.existsSync(path.join(__dirname, 'extract_and_upload_images_by_model_incremental.py'))
@@ -309,6 +308,64 @@ app.post('/api/reload_images', (req, res) => {
   } catch (e) {
     console.error('No se pudo lanzar el script de imágenes:', e);
     res.status(500).json({ ok:false, error:'No se pudo lanzar el script de imágenes.' });
+  }
+});
+
+// ========= NUEVO: stream de logs (SSE) del script Python =========
+app.get('/api/reload_images_stream', (req, res) => {
+  // Cabeceras SSE
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+
+  const send = (type, payload) => {
+    // evento nombrado + data json
+    res.write(`event: ${type}\n`);
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  // Mantener vivo (ping)
+  const ping = setInterval(() => { res.write(': ping\n\n'); }, 15000);
+
+  try {
+    const scriptName = fs.existsSync(path.join(__dirname, 'extract_and_upload_images_by_model_incremental.py'))
+      ? 'extract_and_upload_images_by_model_incremental.py'
+      : 'extract_and_upload_images_by_model.py';
+
+    send('info', { msg: `Iniciando ${scriptName}...` });
+
+    const py = spawn('python3', [scriptName], { cwd: __dirname });
+
+    // stdout/stderr -> líneas
+    const pushChunk = (buf, kind) => {
+      const txt = buf.toString();
+      // dividir por líneas para una UX más fluida
+      txt.split(/\r?\n/).forEach(line => {
+        if (line.trim().length) send('log', { kind, line });
+      });
+    };
+
+    py.stdout.on('data', d => pushChunk(d, 'out'));
+    py.stderr.on('data', d => pushChunk(d, 'err'));
+
+    py.on('close', code => {
+      send('done', { code });
+      clearInterval(ping);
+      // cerrar SSE después de un pequeño respiro para que el cliente consuma el último evento
+      setTimeout(() => { res.end(); }, 200);
+      console.log('Imagenes: proceso python finalizado con código', code);
+    });
+
+    // Si el cliente cierra, matar proceso
+    req.on('close', () => {
+      try { clearInterval(ping); } catch {}
+      try { if (!py.killed) py.kill('SIGTERM'); } catch {}
+    });
+
+  } catch (e) {
+    clearInterval(ping);
+    send('error', { msg: 'No se pudo lanzar el script de imágenes.' });
+    res.end();
   }
 });
 
@@ -422,8 +479,6 @@ app.get('/api/download_cart_pdf', async (req, res) => {
     const itemsByModel = new Map(CATALOG.items.map(p => [p.model, p]));
 
     const sameUrlAsUI = (item) => {
-      // Para no personalizados usa la url que quedó en el carrito (ya es Cloudinary con ?v=IMG_VER)
-      // Para personalizados usa su /images/... guardado.
       const cat = itemsByModel.get(item.model) || null;
       let u = item.image || (cat?.image || '');
       if (!u) return '';
@@ -487,7 +542,6 @@ app.get('/api/download_cart_pdf', async (req, res) => {
         doc.rect(x, rowY, contentWidth, rowH).stroke('#e5e7eb');
         isOdd = !isOdd;
 
-        // Imagen: EXACTA del carrito (Cloudinary con ?v=..., /img?u=..., o /images/... para personalizados)
         const imgUrl = sameUrlAsUI(item);
 
         try {
@@ -537,8 +591,6 @@ app.get('/api/download_cart_pdf', async (req, res) => {
   }
 });
 
-
-
 // ========= Descargar Excel del carrito =========
 app.get('/api/download_cart_excel', async (req, res) => {
   try {
@@ -563,10 +615,9 @@ app.get('/api/download_cart_excel', async (req, res) => {
     sheet.getRow(1).alignment = { vertical: 'middle' };
     sheet.getRow(1).height = 22;
 
-    // Altura homogénea por fila para que la imagen no empuje nada
-    const ROW_H = 90;         // px (ExcelJS usa puntos aprox; 1pt ~ 1.33px, pero esto funciona bien)
-    const IMG_W = 88;         // px
-    const IMG_H = 88;         // px (cuadrada para no aplastar)
+    const ROW_H = 90;
+    const IMG_W = 88;
+    const IMG_H = 88;
     sheet.properties.defaultRowHeight = ROW_H;
 
     const itemsByModel = new Map(CATALOG.items.map(p => [p.model, p]));
@@ -586,7 +637,7 @@ app.get('/api/download_cart_excel', async (req, res) => {
       const cat = itemsByModel.get(item.model) || null;
       const uiImage = sameUrlAsUI(item);
       sheet.addRow({
-        imgPH: '', // solo placeholder para mantener columna
+        imgPH: '',
         model: item.model,
         short: item.isCustom ? (item.note || '') : (item.short || cat?.short || cat?.name || ''),
         note:  item.isCustom ? (item.note || '') : (item.note || ''),
@@ -594,11 +645,10 @@ app.get('/api/download_cart_excel', async (req, res) => {
       });
     });
 
-    // Alinear textos
     sheet.getColumn('short').alignment = { wrapText: true, vertical: 'top' };
     sheet.getColumn('note').alignment  = { wrapText: true, vertical: 'top' };
 
-    // 2) Insertar imágenes ANCLADAS a cada fila (col A), sin distorsión y sin recorrer filas
+    // 2) Insertar imágenes ancladas (col A)
     for (let i = 0; i < cart.length; i++) {
       const item = cart[i];
       const imgUrl = sameUrlAsUI(item);
@@ -611,11 +661,10 @@ app.get('/api/download_cart_excel', async (req, res) => {
         if (imgUrl.startsWith('http')) {
           const resp = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 8000 });
           imgBuffer = Buffer.from(resp.data);
-          // best effort: intentar deducir extensión por cabecera
           const ct = (resp.headers['content-type'] || '').toLowerCase();
           if (ct.includes('jpeg') || ct.includes('jpg')) ext = 'jpeg';
           else if (ct.includes('png')) ext = 'png';
-          else if (ct.includes('webp')) ext = 'png'; // Excel no soporta webp: lo dejamos como png
+          else if (ct.includes('webp')) ext = 'png';
         } else if (imgUrl.startsWith('/img?u=')) {
           const abs = `http://127.0.0.1:${PORT}${imgUrl}`;
           const resp = await axios.get(abs, { responseType: 'arraybuffer', timeout: 8000 });
@@ -624,7 +673,6 @@ app.get('/api/download_cart_excel', async (req, res) => {
           if (ct.includes('jpeg') || ct.includes('jpg')) ext = 'jpeg';
           else if (ct.includes('png')) ext = 'png';
         } else if (imgUrl.startsWith('/images/')) {
-          // Solo personalizados
           const p = path.join(IMAGE_LOCAL_DIR, imgUrl.replace('/images/', ''));
           if (fs.existsSync(p)) {
             imgBuffer = fs.readFileSync(p);
@@ -636,21 +684,15 @@ app.get('/api/download_cart_excel', async (req, res) => {
 
         if (!imgBuffer) continue;
 
-        const imageId = workbook.addImage({
-          buffer: imgBuffer,
-          extension: ext,
-        });
-
-        // Fila real en Excel (1 = header). Nuestra primera data es fila 2.
+        const imageId = workbook.addImage({ buffer: imgBuffer, extension: ext });
         const excelRow = i + 2;
 
         sheet.addImage(imageId, {
-          tl: { col: 0, row: excelRow - 1 },   // columna A (índice 0), fila actual
-          ext: { width: IMG_W, height: IMG_H },// tamaño fijo, evita “aplastadas”
+          tl:  { col: 0, row: excelRow - 1 },
+          ext: { width: IMG_W, height: IMG_H },
           editAs: 'oneCell',
         });
 
-        // Ajustar altura exacta de la fila (por si el defaultRowHeight no aplica en todos)
         sheet.getRow(excelRow).height = ROW_H;
       } catch (e) {
         console.warn('No se pudo embeber imagen en Excel para', item.model, e.message);
@@ -666,9 +708,6 @@ app.get('/api/download_cart_excel', async (req, res) => {
     res.status(500).send('Error al generar el Excel.');
   }
 });
-
-
-
 
 // ========= UI embebida (SIN backticks internos) =========
 app.get('/', (_, res) => {
@@ -715,6 +754,8 @@ app.get('/', (_, res) => {
   #imagePreview{width:100px;height:100px;background:#e2e8f0;border-radius:8px;background-size:cover;background-position:center;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);text-align:center;font-size:12px}
   @media (max-width:640px){#newProductCard{grid-template-columns:1fr}#imagePreview{grid-row:1;justify-self:center}#addNewProductBtn{grid-column:1}}
   @media (min-width:641px){#newProductCard{grid-template-columns:100px 1fr 1fr auto}}
+  /* Modal de logs */
+  #reloadLogBox{height:360px;background:#0b1020;color:#cbd5e1;border-radius:8px;padding:12px;overflow:auto;font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:12px;white-space:pre-wrap;border:1px solid #1f2937}
 </style>
 </head><body>
 <div id="particles-js"></div>
@@ -769,6 +810,17 @@ app.get('/', (_, res) => {
   <div class="modal-content">
     <div class="modal-header"><h2 id="detailTitle"></h2><button class="btn-ghost" id="closeDetail">Cerrar</button></div>
     <div class="modal-body" id="detailBody"></div>
+  </div>
+</div>
+
+<!-- NUEVO: Modal para logs de recarga -->
+<div class="modal-overlay" id="reloadModal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>Procesando imágenes (Python)</h2><button class="btn-ghost" id="closeReload">Cerrar</button></div>
+    <div class="modal-body"><pre id="reloadLogBox"></pre></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" id="reloadCloseBtn">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -937,6 +989,57 @@ app.get('/', (_, res) => {
     }
   }
 
+  // ===== NUEVO: abrir stream SSE y mostrar logs =====
+  function openReloadLogs(){
+    const modal = document.getElementById('reloadModal');
+    const box   = document.getElementById('reloadLogBox');
+    box.textContent = '';
+    modal.classList.add('open');
+
+    // Abrimos EventSource hacia el endpoint SSE
+    const es = new EventSource('/api/reload_images_stream');
+
+    const append = function(line){
+      box.textContent += line + '\\n';
+      box.scrollTop = box.scrollHeight;
+    };
+
+    es.addEventListener('info', function(ev){
+      try { const d = JSON.parse(ev.data||'{}'); if (d.msg) append('> ' + d.msg); } catch(_){}
+    });
+
+    es.addEventListener('log', function(ev){
+      try {
+        const d = JSON.parse(ev.data||'{}');
+        if (d && d.line) append((d.kind==='err'?'[err] ':'') + d.line);
+      } catch(_){}
+    });
+
+    es.addEventListener('done', async function(ev){
+      try { const d = JSON.parse(ev.data||'{}'); append('==> Finalizado (code: ' + d.code + ')'); } catch(_){}
+      es.close();
+      // Recargar catálogo y refrescar resultados
+      try {
+        await fetch('/api/reload',{method:'POST'});
+        const data = await (await fetch('/api/catalog_for_client')).json();
+        CATALOG = data || { items: [] };
+        await buscar();
+      } catch (e) { append('[err] No se pudo refrescar el catálogo'); }
+    });
+
+    es.onerror = function(){
+      append('[err] Conexión de logs cerrada.');
+      try { es.close(); } catch(_){}
+    };
+
+    // Botón cerrar sólo cierra el modal (no corta el proceso; si quieres cortar, se podría abortar fetch)
+    const close = function(){ modal.classList.remove('open'); };
+    document.getElementById('closeReload').onclick = close;
+    document.getElementById('reloadCloseBtn').onclick = close;
+    // Click fuera para cerrar
+    modal.addEventListener('click', function(e){ if (e.target && e.target.id === 'reloadModal') close(); }, { once:true });
+  }
+
   function setupEventListeners(){
     document.getElementById('homeBtn').onclick = async function(){ document.getElementById('q').value=''; await buscar(); };
     document.getElementById('btnbuscar').onclick = async function(){ await buscar(); };
@@ -945,14 +1048,9 @@ app.get('/', (_, res) => {
       if (e.key==='Enter') buscar();
     });
 
-    document.getElementById('reload').onclick = async function(){
-      const btn=document.getElementById('reload'); const old=btn.textContent; btn.textContent='...'; btn.disabled = true;
-      await fetch('/api/reload_images', { method:'POST' });
-      await fetch('/api/reload',{method:'POST'});
-      const d = await (await fetch('/api/catalog_for_client')).json();
-      CATALOG = d || { items: [] };
-      await buscar();
-      btn.textContent=old; btn.disabled = false;
+    document.getElementById('reload').onclick = function(){
+      // muestra modal y consume logs en vivo
+      openReloadLogs();
     };
 
     document.getElementById('openCart').onclick = function(){ openCart(); };
@@ -975,7 +1073,7 @@ app.get('/', (_, res) => {
           model: model,
           note: note,
           short: (p?(p.short||p.name):''),
-          image: (p&&p.image)||'',  // <- guardamos EXACTAMENTE la misma URL que ve el usuario
+          image: (p&&p.image)||'',
           price: (cur.fob!=null)?cur.fob:null,
           pvp:   (cur.pvp!=null)?cur.pvp:null
         });

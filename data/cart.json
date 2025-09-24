@@ -2,9 +2,33 @@
   "OMNIA": [
     {
       "model": "X01",
-      "note": "asdp",
+      "note": "iausdoiasjd",
       "short": "100 Mini Lights, Clear Bulb, Green Wire, end connector",
       "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X01",
+      "price": null,
+      "pvp": null
+    },
+    {
+      "model": "X02",
+      "note": "sdkja",
+      "short": "100 Mini Lights, Multi Bulb, Green Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X02",
+      "price": null,
+      "pvp": null
+    },
+    {
+      "model": "X10",
+      "note": "lknasdf",
+      "short": "100 5mm Concave LED Lights, Multi LED, White  Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X10",
+      "price": null,
+      "pvp": null
+    },
+    {
+      "model": "X09",
+      "note": "aosjhd",
+      "short": "100 5mm Concave LED Lights, Multi LED, Green Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X09",
       "price": null,
       "pvp": null
     }
@@ -51,6 +75,60 @@
       "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X07",
       "price": 0.06,
       "pvp": 4.2
+    }
+  ],
+  "SORIANA": [
+    {
+      "model": "asdaosdij",
+      "note": "jaspdojasopdj",
+      "image": "/images/CUSTOM_1758677020147.png",
+      "isCustom": true,
+      "short": "jaspdojasopdj",
+      "price": null,
+      "pvp": null
+    }
+  ],
+  "HEB": [
+    {
+      "model": "X05",
+      "note": "lkjzxc",
+      "short": "100 LED lights type mini, warm white bulb, green wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X05",
+      "price": 0.06,
+      "pvp": 4.2
+    },
+    {
+      "model": "X10",
+      "note": "oijasd",
+      "short": "100 5mm Concave LED Lights, Multi LED, White  Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X10",
+      "price": 0.06,
+      "pvp": 4.2
+    },
+    {
+      "model": "X11",
+      "note": "aoijf",
+      "short": "100 5mm Concave LED Lights, Cool White LED, Green Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X11",
+      "price": 0.06,
+      "pvp": 4.2
+    },
+    {
+      "model": "X12",
+      "note": "aisf",
+      "short": "100 5mm Concave LED Lights, Warm White LED, White Wire, end connector",
+      "image": "https://res.cloudinary.com/dzexlyboi/image/upload/f_auto,q_auto/showroom_2025/X12",
+      "price": 0.06,
+      "pvp": 4.2
+    },
+    {
+      "model": "ejemplo",
+      "note": "ejemplo",
+      "image": "/images/CUSTOM_1758670425784.png",
+      "isCustom": true,
+      "short": "ejemplo",
+      "price": null,
+      "pvp": null
     }
   ]
 }
