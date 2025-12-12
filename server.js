@@ -55,6 +55,20 @@ const BUYERS = (process.env.BUYERS || 'OMNIA,HEB,SORIANA,CHEDRAUI,LA COMER,LIVER
 const CLOUDINARY_CLOUD_NAME = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
 const CLOUDINARY_FOLDER = (process.env.CLOUDINARY_FOLDER || 'showroom_2025').trim();
 
+// Cargar mapa de imágenes de Cloudinary desde archivo JSON (generado por el script Python)
+const CLOUDINARY_MAP_PATH = path.join(__dirname, 'data', 'cloudinary_map_full.json');
+let CLOUDINARY_IMAGE_MAP = {};
+try {
+  if (fs.existsSync(CLOUDINARY_MAP_PATH)) {
+    CLOUDINARY_IMAGE_MAP = JSON.parse(fs.readFileSync(CLOUDINARY_MAP_PATH, 'utf8'));
+    console.log(`Mapa de imágenes Cloudinary cargado: ${Object.keys(CLOUDINARY_IMAGE_MAP).length} entradas`);
+  } else {
+    console.log('Aviso: No se encontró cloudinary_map_full.json - usando generación dinámica de URLs');
+  }
+} catch (e) {
+  console.error('Error cargando mapa de imágenes Cloudinary:', e.message);
+}
+
 // Paths
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -124,6 +138,16 @@ function normalizeDriveUrl(u) {
 }
 const modelBase = m => String(m || '').trim().replace(/[^\w\-]+/g, '_');
 const cloudinaryUrlForModel = m => {
+  const modelKey = String(m || '').trim();
+  // Primero buscar en el mapa JSON cargado
+  if (CLOUDINARY_IMAGE_MAP[modelKey]) {
+    let url = CLOUDINARY_IMAGE_MAP[modelKey];
+    if (IMG_VER && !/[?&]v=/.test(url)) {
+      url += (url.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(IMG_VER);
+    }
+    return url;
+  }
+  // Fallback: generar URL dinámicamente si tenemos CLOUDINARY_CLOUD_NAME
   if (!CLOUDINARY_CLOUD_NAME) return '';
   const base = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto/${CLOUDINARY_FOLDER}/${modelBase(m)}`;
   return IMG_VER ? `${base}?v=${encodeURIComponent(IMG_VER)}` : base;
