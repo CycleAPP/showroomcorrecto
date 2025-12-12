@@ -137,9 +137,22 @@ function normalizeDriveUrl(u) {
   return s;
 }
 const modelBase = m => String(m || '').trim().replace(/[^\w\-]+/g, '_');
+
+// Crear un mapa normalizado para búsqueda flexible
+const normalizeModelKey = k => String(k || '').trim().toUpperCase().replace(/[\s\-_\/]+/g, '');
+let CLOUDINARY_IMAGE_MAP_NORMALIZED = {};
+for (const [key, url] of Object.entries(CLOUDINARY_IMAGE_MAP)) {
+  const normKey = normalizeModelKey(key);
+  if (!CLOUDINARY_IMAGE_MAP_NORMALIZED[normKey]) {
+    CLOUDINARY_IMAGE_MAP_NORMALIZED[normKey] = url;
+  }
+}
+console.log(`Mapa normalizado creado: ${Object.keys(CLOUDINARY_IMAGE_MAP_NORMALIZED).length} claves únicas`);
+
 const cloudinaryUrlForModel = m => {
   const modelKey = String(m || '').trim();
-  // Primero buscar en el mapa JSON cargado
+
+  // 1) Búsqueda exacta en el mapa original
   if (CLOUDINARY_IMAGE_MAP[modelKey]) {
     let url = CLOUDINARY_IMAGE_MAP[modelKey];
     if (IMG_VER && !/[?&]v=/.test(url)) {
@@ -147,7 +160,18 @@ const cloudinaryUrlForModel = m => {
     }
     return url;
   }
-  // Fallback: generar URL dinámicamente si tenemos CLOUDINARY_CLOUD_NAME
+
+  // 2) Búsqueda normalizada (ignora espacios, guiones, mayúsculas)
+  const normKey = normalizeModelKey(modelKey);
+  if (CLOUDINARY_IMAGE_MAP_NORMALIZED[normKey]) {
+    let url = CLOUDINARY_IMAGE_MAP_NORMALIZED[normKey];
+    if (IMG_VER && !/[?&]v=/.test(url)) {
+      url += (url.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(IMG_VER);
+    }
+    return url;
+  }
+
+  // 3) Fallback: generar URL dinámicamente si tenemos CLOUDINARY_CLOUD_NAME
   if (!CLOUDINARY_CLOUD_NAME) return '';
   const base = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto/${CLOUDINARY_FOLDER}/${modelBase(m)}`;
   return IMG_VER ? `${base}?v=${encodeURIComponent(IMG_VER)}` : base;
