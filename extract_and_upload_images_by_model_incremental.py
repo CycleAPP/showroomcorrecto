@@ -45,7 +45,9 @@ def maybe_convert_to_png(img_bytes):
         return img_bytes
 
 # ========= CONFIG =========
-EXCEL_PATH   = (os.getenv("EXCEL_PATH") or "").strip()
+# Por defecto, usar el archivo local data/last.xlsx (arrastrado por el usuario)
+DEFAULT_EXCEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "last.xlsx")
+EXCEL_PATH   = (os.getenv("EXCEL_PATH") or "").strip() or DEFAULT_EXCEL_PATH
 EXCEL_URL    = (os.getenv("EXCEL_URL")  or "").strip()
 SHEET_NAME   = (os.getenv("SHEET_NAME") or "Master").strip()
 HEADER_ROW   = int((os.getenv("HEADER_ROW") or "5").strip())
